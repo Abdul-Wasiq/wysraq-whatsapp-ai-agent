@@ -1,0 +1,28 @@
+.env
+
+# Node js
+node_modules/
+package-lock.json
+npm-debug.log
+
+# WhatsApp Web Js
+.wwebjs_auth/
+.wwebjs_cache/
+session-*/
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Mac/Windows Junk
+.DS_Store
+Thumbs.db
+
+# ... (your other ignored files)
+
+# Ignore the broken ghost folder
+frontend/

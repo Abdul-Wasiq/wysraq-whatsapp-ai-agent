@@ -1,0 +1,4 @@
+set timer that QR code will be generated
+Temporarily pause the bot — "I'll handle this customer myself"
+See a conversation and override the reply manually
+Blacklist a number — "never reply to this person"

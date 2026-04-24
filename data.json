@@ -1,0 +1,18 @@
+{
+  "business": "TCF Scholarship Program",
+  "owner_number": "3182182142@c.us",
+  "qa": [
+    {
+      "question": "Scholarship kab milegi?",
+      "answer": "Scholarship har semester ke pehle hafte mein transfer hoti hai."
+    },
+    {
+      "question": "Documents kaunse chahiye?",
+      "answer": "CNIC, fee slip, aur marksheet chahiye hoti hai."
+    },
+    {
+      "question": "Kitni amount milti hai?",
+      "answer": "25,000 rupees per semester milte hain."
+    }
+  ]
+}

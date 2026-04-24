@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wysraq — WhatsApp AI Agent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --blue: #1a73e8;
+      --blue-dark: #185abc;
+      --blue-light: #e8f0fe;
+      --text: #202124;
+      --text2: #5f6368;
+      --text3: #9aa0a6;
+      --border: #e0e0e0;
+      --bg: #f8f9fa;
+      --white: #ffffff;
+      --green: #1e8e3e;
+      --green-light: #e6f4ea;
+      --red: #d93025;
+      --red-light: #fce8e6;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--white);
+      color: var(--text);
+      overscroll-behavior: contain;
+    }
+
+    /* BOUNCY SCROLL */
+    body {
+      overflow-y: scroll;
+    }
+
+    @supports (-webkit-overflow-scrolling: touch) {
+      body { -webkit-overflow-scrolling: touch; }
+    }
+
+    /* NAVBAR */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 64px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      padding: 7px 20px;
+      border-radius: 20px;
+      border: none;
+      background: none;
+      font-family: 'Roboto', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab:hover { background: var(--border); color: var(--text); }
+    .tab.active { background: var(--blue-light); color: var(--blue); }
+
+    .status-badge {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    .status-badge.online { background: var(--green-light); color: var(--green); }
+    .status-badge.offline { background: var(--red-light); color: var(--red); }
+
+    /* PAGES */
+    .page { display: none; padding: 40px 32px; max-width: 1000px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* PAGE HEADER */
+    .page-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--blue); font-weight: 500; margin-bottom: 6px; }
+    .page-title { font-size: 28px; font-weight: 400; color: var(--text); margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 32px; }
+
+    /* CARD */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text3);
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    /* CONNECT PAGE */
+    .connect-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .qr-box {
+      min-height: 340px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .qr-img {
+      width: 200px;
+      height: 200px;
+      border: 2px solid var(--blue);
+      border-radius: 8px;
+      display: none;
+    }
+
+    .qr-placeholder-icon {
+      width: 64px;
+      height: 64px;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--text3);
+    }
+
+    .qr-hint { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .steps-list { display: flex; flex-direction: column; }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .step-num {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--blue);
+      min-width: 24px;
+      padding-top: 2px;
+    }
+
+    .step-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text2); }
+
+    /* BUTTONS */
+    .btn {
+      background: var(--blue);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Roboto', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { background: var(--blue-dark); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-outline {
+      background: none;
+      color: var(--blue);
+      border: 1px solid var(--border);
+      padding: 9px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Roboto', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-outline:hover { background: var(--blue-light); border-color: var(--blue); }
+
+    .btn-danger {
+      background: none;
+      color: var(--red);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'Roboto', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-danger:hover { background: var(--red-light); }
+
+    /* SETUP PAGE */
+    .form-group { margin-bottom: 20px; }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    input, textarea {
+      width: 100%;
+      background: var(--white);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'Roboto', sans-serif;
+      outline: none;
+      transition: border 0.15s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    .form-hint { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+    .qa-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+
+    .qa-item {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 12px;
+      align-items: start;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .qa-num { font-size: 11px; font-weight: 500; color: var(--text3); padding-top: 11px; }
+
+    .qa-fields { display: flex; flex-direction: column; gap: 6px; }
+    .qa-fields input, .qa-fields textarea { background: var(--white); font-size: 13px; }
+
+    .save-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    .save-msg { font-size: 13px; color: var(--green); font-weight: 500; display: none; }
+
+    /* DASHBOARD */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .stat-num { font-size: 32px; font-weight: 300; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .stat-num.blue { color: var(--blue); }
+    .stat-num.green { color: var(--green); }
+    .stat-num.red { color: var(--red); }
+    .stat-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .filter-row { display: flex; gap: 6px; margin-bottom: 16px; }
+
+    .filter-btn {
+      background: var(--white);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'Roboto', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover { color: var(--text); }
+    .filter-btn.active { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
+
+    .conv-item {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 8px;
+      transition: box-shadow 0.15s;
+    }
+
+    .conv-item:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+
+    .conv-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+    .conv-phone { font-size: 13px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+
+    .phone-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+
+    .conv-meta { display: flex; align-items: center; gap: 10px; }
+    .conv-time { font-size: 11px; color: var(--text3); }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    .badge-green { background: var(--green-light); color: var(--green); }
+    .badge-red { background: var(--red-light); color: var(--red); }
+
+    .msg { display: flex; align-items: baseline; gap: 10px; padding: 8px 12px; border-radius: 6px; font-size: 13px; line-height: 1.5; margin-bottom: 4px; }
+    .msg-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; min-width: 36px; color: var(--text3); }
+    .msg-user { background: var(--bg); color: var(--text2); }
+    .msg-bot { background: var(--blue-light); color: var(--text); }
+    .msg-bot .msg-label { color: var(--blue); }
+    .msg-ignored { background: var(--red-light); color: var(--text2); font-style: italic; }
+    .msg-ignored .msg-label { color: var(--red); }
+
+    /* SUCCESS ANIMATION */
+    .connected-check {
+      font-size: 48px;
+      color: var(--green);
+      display: none;
+    }
+
+    /* AUTH MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 1; /* Set to 0 to hide, 1 to show */
+      transition: opacity 0.2s ease;
+    }
+    .modal-content {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      transform: translateY(0);
+      animation: modalSlideIn 0.3s ease;
+    }
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: none; border: none;
+      font-size: 20px; color: var(--text3);
+      cursor: pointer;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    /* BOUNCY EFFECT */
+    .page { animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <div id="authModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="position: relative;">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <div class="brand" style="margin-bottom: 24px; justify-content: center;">
+      <div class="brand-dot"></div>Wysraq
+    </div>
+    
+    <h1 class="page-title" id="authTitle" style="text-align: center; font-size: 24px;">Welcome Back</h1>
+<p class="page-sub" id="authSub" style="text-align: center; margin-bottom: 24px;">Sign in to manage your AI agent</p>
+
+<div class="form-group" id="usernameGroup" style="display: none;">
+  <label class="form-label">Username</label>
+  <input type="text" id="authUser" placeholder="Enter username" />
+</div>
+
+<div class="form-group">
+  <label class="form-label">Email</label>
+  <input type="email" id="authEmail" placeholder="Enter email" />
+</div>
+
+<div class="form-group">
+  <label class="form-label">Password</label>
+  <input type="password" id="authPass" placeholder="••••••••" />
+</div>
+    <button class="btn" style="width: 100%; margin-bottom: 16px; padding: 12px;" onclick="submitAuth()">Sign In</button>
+    
+    <div class="form-hint" style="text-align: center;">
+      <span id="authToggleText">Don't have an account?</span> 
+      <a href="#" style="color: var(--blue); text-decoration: none; font-weight: 500;" onclick="toggleAuthMode(event)">Sign Up</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    Wysraq
+  </div>
+  <div class="nav-tabs">
+    <button class="tab active" onclick="showPage('connect')">Connect</button>
+    <button class="tab" onclick="showPage('setup')">Setup</button>
+    <button class="tab" onclick="showPage('qna')">Q&A</button>
+    <button class="tab" onclick="showPage('dashboard')">Dashboard</button>
+  </div>
+  
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div class="status-badge offline" id="statusBadge">Disconnected</div>
+    <button class="btn-outline" style="padding: 6px 14px; font-size: 12px;" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<!-- CONNECT PAGE -->
+<div class="page active" id="page-connect">
+  <div class="page-tag">Step 01</div>
+  <h1 class="page-title">Connect WhatsApp</h1>
+  <p class="page-sub">Link your WhatsApp number to activate the AI agent</p>
+
+  <div class="connect-grid">
+    <div class="card">
+      <div class="card-label">Scan to Connect</div>
+      <div class="qr-box">
+        <div class="qr-placeholder-icon" id="qrIcon">◈</div>
+        <div class="spinner" id="qrSpinner"></div>
+        <img class="qr-img" id="qrImg" alt="QR Code"/>
+        <div class="connected-check" id="connectedCheck">✓</div>
+        <p class="qr-hint" id="qrHint">Click below to generate your QR code</p>
+        <button class="btn" id="qrBtn" onclick="generateQR()">Generate QR Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">How it works</div>
+      <div class="steps-list">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div>
+            <div class="step-title">Generate QR</div>
+            <div class="step-desc">Click the button to create your unique QR code</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div>
+            <div class="step-title">Scan on Phone</div>
+            <div class="step-desc">Open WhatsApp → Linked Devices → Link a Device</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div>
+            <div class="step-title">Setup Agent</div>
+            <div class="step-desc">Add your business info and Q&A data</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div>
+            <div class="step-title">Go Live</div>
+            <div class="step-desc">Your AI agent starts responding automatically</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP PAGE -->
+<div class="page" id="page-setup">
+  <div class="page-tag">Step 02</div>
+  <h1 class="page-title">Business Setup</h1>
+  <p class="page-sub">Tell the AI what your business is about</p>
+
+  <div class="card">
+    <div class="card-label">Business Info</div>
+    <div class="form-group">
+      <label class="form-label">Business Description</label>
+      <textarea id="businessDesc" placeholder="e.g. TCF Scholarship Program — we provide financial support to university students..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Owner WhatsApp Number</label>
+      <input id="ownerNumber" type="text" placeholder="923001234567"/>
+      <div class="form-hint">Stored for owner reference (format: countrycode + number)</div>
+    </div>
+    <div class="save-row" style="border-top:none; margin-top:0; padding-top:0; justify-content:flex-start;">
+      <span class="save-msg" id="setupSaveMsg">✓ Setup saved</span>
+      <button class="btn" onclick="saveSetup()">Save Setup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Q&A PAGE -->
+<div class="page" id="page-qna">
+  <div class="page-tag">Step 03</div>
+  <h1 class="page-title">Q&A Knowledge Base</h1>
+  <p class="page-sub">Add question-answer pairs. AI will match by intent, not exact words.</p>
+
+  <div class="card">
+    <div class="qa-header">
+      <div class="card-label" style="margin:0">Knowledge Base</div>
+      <button class="btn-outline" onclick="addQA()">+ Add Q&A</button>
+    </div>
+    <div id="qaList"></div>
+    <div class="save-row">
+      <span class="save-msg" id="qaSaveMsg">✓ Q&A saved</span>
+      <button class="btn" onclick="saveQA()">Save Q&A</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="page" id="page-dashboard">
+  <div class="page-tag">Dashboard</div>
+  <h1 class="page-title">Conversations</h1>
+  <p class="page-sub">Monitor all incoming messages and agent responses</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="statTotal">0</div>
+      <div class="stat-label">Total Messages</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num blue" id="statAnswered">0</div>
+      <div class="stat-label">Answered</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num red" id="statIgnored">0</div>
+      <div class="stat-label">Ignored</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num green" id="statRate">0%</div>
+      <div class="stat-label">Response Rate</div>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="filterConv('all', this)">All</button>
+    <button class="filter-btn" onclick="filterConv('answered', this)">Answered</button>
+    <button class="filter-btn" onclick="filterConv('ignored', this)">Ignored</button>
+  </div>
+
+  <div id="convList"></div>
+</div>
+
+<script>
+  // --- AUTHENTICATION LOGIC ---
+  let isLoginMode = true;
+
+  function openAuthModal() {
+    document.getElementById('authModal').style.display = 'flex';
+  }
+
+  function closeAuthModal() {
+    document.getElementById('authModal').style.display = 'none';
+  }
+
+  function toggleAuthMode(e) {
+    e.preventDefault();
+    isLoginMode = !isLoginMode;
+
+    const title = document.getElementById('authTitle');
+    const sub = document.getElementById('authSub');
+    const btn = document.querySelector('#authModal .btn');
+    const toggleText = document.getElementById('authToggleText');
+    const toggleLink = toggleText.nextElementSibling;
+    const usernameGroup = document.getElementById('usernameGroup');
+
+    if (isLoginMode) {
+      title.textContent = 'Welcome Back';
+      sub.textContent = 'Sign in to manage your AI agent';
+      btn.textContent = 'Sign In';
+      toggleText.textContent = "Don't have an account?";
+      toggleLink.textContent = 'Sign Up';
+      usernameGroup.style.display = 'none';  // hide username on login
+    } else {
+      title.textContent = 'Create Account';
+      sub.textContent = 'Register to set up your AI agent';
+      btn.textContent = 'Sign Up';
+      toggleText.textContent = 'Already have an account?';
+      toggleLink.textContent = 'Sign In';
+      usernameGroup.style.display = 'block'; // show username on signup
+    }
+  }
+
+  async function submitAuth() {
+    const user = document.getElementById('authUser').value.trim();
+    const email = document.getElementById('authEmail').value.trim();
+    const pass = document.getElementById('authPass').value.trim();
+
+    // Email validation
+    if (!email.includes('@') || !email.includes('.')) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    if (!pass) {
+      alert('Please enter password');
+      return;
+    }
+
+    
+
+    // Login: email + password only
+    // Signup: username + email + password
+    const body = isLoginMode
+      ? { email: email, password: pass }
+      : { username: user, email: email, password: pass };
+
+    const endpoint = isLoginMode ? '/login' : '/signup';
+
+    try {
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+   if (data.success) {
+      localStorage.setItem('user_id', data.user_id);
+      localStorage.setItem('token', data.token);
+      closeAuthModal();
+      
+      startStatusMonitor(); // <--- Changed this line!
+      loadConversations();
+      
+      await loadSetup();  
+      await loadQA();
+    } else {
+        alert('Error: ' + data.message);
+      }
+    } catch (err) {
+      alert('Could not connect to Python server.');
+    }
+  }
+  // ----------------------------
+
+  // PAGE NAVIGATION
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if (name === 'dashboard') loadConversations();
+  }
+
+  // QR CODE
+  let qrInterval = null;
+
+  async function generateQR() {
+    // 1. THE GATEKEEPER: Check if logged in first
+    const token = localStorage.getItem('token');
+    if (!token) {
+        openAuthModal();
+        return; // Stop the function here!
+    }
+
+    // 2. The rest of your existing code...
+    clearInterval(qrInterval);
+    document.getElementById('qrIcon').style.display = 'none';
+    document.getElementById('qrBtn').style.display = 'none';
+    document.getElementById('connectedCheck').style.display = 'none';
+    document.getElementById('qrImg').style.display = 'none';
+    document.getElementById('qrSpinner').style.display = 'block';
+    document.getElementById('qrHint').textContent = 'Generating QR Code...';
+
+    pollQR();
+    qrInterval = setInterval(pollQR, 3000);
+  }
+
+  async function pollQR() {
+    try {
+      // 1. Grab the user ID
+      const userId = localStorage.getItem('user_id');
+      if (!userId) return; // Stop if not logged in
+
+      // 2. Attach it to the URL!
+      const res = await fetch(`http://localhost:3000/qr?userId=${userId}`);
+      const data = await res.json();
+
+      if (data.connected) {
+        clearInterval(qrInterval);
+        showConnected();
+        return;
+      }
+
+      if (data.qr) {
+        document.getElementById('qrSpinner').style.display = 'none';
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.qr)}`;
+        document.getElementById('qrImg').src = qrUrl;
+        document.getElementById('qrImg').style.display = 'block';
+        document.getElementById('qrHint').textContent = 'Open WhatsApp → Linked Devices → Link a Device';
+      }
+    } catch {
+      document.getElementById('qrHint').textContent = 'Could not connect. Is node index.js running?';
+      document.getElementById('qrSpinner').style.display = 'none';
+      document.getElementById('qrIcon').style.display = 'flex';
+      document.getElementById('qrBtn').style.display = 'block';
+      clearInterval(qrInterval);
+    }
+  }
+
+  function showConnected() {
+    document.getElementById('qrImg').style.display = 'none';
+    document.getElementById('qrIcon').style.display = 'none';
+    document.getElementById('qrSpinner').style.display = 'none';
+    document.getElementById('connectedCheck').style.display = 'block';
+    document.getElementById('qrHint').textContent = 'WhatsApp Connected!';
+    document.getElementById('qrBtn').textContent = 'Continue to Setup →';
+    document.getElementById('qrBtn').style.display = 'block';
+    document.getElementById('qrBtn').onclick = () => {
+        document.querySelector('.tab:nth-child(2)').click();
+    };
+    document.getElementById('statusBadge').textContent = 'Connected';
+    document.getElementById('statusBadge').className = 'status-badge online';
+
+    let disconnectBtn = document.getElementById('disconnectBtn');
+    if (!disconnectBtn) {
+      disconnectBtn = document.createElement('button');
+      disconnectBtn.id = 'disconnectBtn';
+      disconnectBtn.className = 'btn-danger';
+      disconnectBtn.textContent = 'Disconnect';
+      disconnectBtn.style.marginTop = '8px';
+      disconnectBtn.onclick = disconnect;
+      document.querySelector('.qr-box').appendChild(disconnectBtn);
+    }
+    disconnectBtn.style.display = 'block';
+  }
+
+  function resetConnectionUI() {
+    clearInterval(qrInterval);
+    document.getElementById('statusBadge').textContent = 'Disconnected';
+    document.getElementById('statusBadge').className = 'status-badge offline';
+    document.getElementById('connectedCheck').style.display = 'none';
+    document.getElementById('qrImg').style.display = 'none';
+    document.getElementById('qrSpinner').style.display = 'none';
+    document.getElementById('qrIcon').style.display = 'flex';
+    document.getElementById('qrBtn').textContent = 'Generate QR Code';
+    document.getElementById('qrBtn').style.display = 'block';
+    document.getElementById('qrBtn').onclick = generateQR;
+    document.getElementById('qrHint').textContent = 'Click below to generate your QR code';
+
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    if (disconnectBtn) disconnectBtn.style.display = 'none';
+  }
+
+  let statusMonitorInterval = null;
+
+  // 1. The new continuous monitor
+  async function startStatusMonitor() {
+    await checkStatus(); // Check immediately
+    
+    // Then check every 3 seconds quietly in the background
+    if (!statusMonitorInterval) {
+      statusMonitorInterval = setInterval(checkStatus, 3000);
+    }
+  }
+
+  // 2. The actual ping function
+  async function checkStatus() {
+    try {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) return; // Stop if not logged in
+
+      const res = await fetch(`http://localhost:3000/qr?userId=${userId}`);
+      const data = await res.json();
+      
+      if (data.connected) {
+        showConnected();
+      } else {
+        // If Node is still booting or disconnected, keep it red
+        document.getElementById('statusBadge').textContent = 'Disconnected';
+        document.getElementById('statusBadge').className = 'status-badge offline';
+      }
+    } catch {
+      // If the Node.js server completely crashed or is turned off
+      document.getElementById('statusBadge').textContent = 'Node Server Offline';
+      document.getElementById('statusBadge').className = 'status-badge offline';
+    }
+  }
+
+  // SETUP + Q&A
+  let qaCount = 0;
+
+  function addQA(question = '', answer = '') {
+    qaCount++;
+    const div = document.createElement('div');
+    div.className = 'qa-item';
+    div.id = 'qa-' + qaCount;
+    div.innerHTML = `
+      <div class="qa-num">${String(qaCount).padStart(2,'0')}</div>
+      <div class="qa-fields">
+        <input type="text" placeholder="Question..." id="q-${qaCount}" value="${escapeHtml(question)}"/>
+        <textarea rows="2" placeholder="Answer..." id="a-${qaCount}">${escapeHtml(answer)}</textarea>
+      </div>
+      <button class="btn-danger" onclick="removeQA(${qaCount})">✕</button>
+    `;
+    document.getElementById('qaList').appendChild(div);
+  }
+
+  function removeQA(id) {
+    const row = document.getElementById('qa-' + id);
+    if (row) row.remove();
+  }
+
+  function escapeHtml(text) {
+    return String(text || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  async function loadSetup() {
+    try {
+        const token = localStorage.getItem('token') || '';
+        const res = await fetch(`http://localhost:8000/setup?token=${token}`);
+        const data = await res.json();
+        document.getElementById('businessDesc').value = data.business_description || '';
+        document.getElementById('ownerNumber').value = (data.owner_number || '').replace('@c.us', '');
+    } catch {}
+}
+
+async function loadQA() {
+  try {
+    // 1. Grab the token
+    const token = localStorage.getItem('token') || '';
+    
+    // 2. Ask Python for the data, sending the token in the URL
+    const res = await fetch(`http://localhost:8000/qa?token=${token}`);
+    const data = await res.json();
+
+    document.getElementById('qaList').innerHTML = '';
+    qaCount = 0;
+
+    const qa = Array.isArray(data.qa) ? data.qa : [];
+    
+    // If the database is empty for this user, show one blank row
+    if (qa.length === 0) {
+      addQA();
+      return;
+    }
+
+    // Loop through the database results and draw them on the screen!
+    qa.forEach(item => addQA(item.question || '', item.answer || ''));
+  } catch {
+    document.getElementById('qaList').innerHTML = '';
+    qaCount = 0;
+    addQA();
+  }
+}
+  async function saveSetup() {
+    const businessDescription = document.getElementById('businessDesc').value.trim();
+    const ownerNumber = document.getElementById('ownerNumber').value.trim();
+
+    try {
+      const response = await fetch('http://localhost:8000/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            token: localStorage.getItem('token'),
+            business_description: businessDescription, 
+            owner_number: ownerNumber 
+        })
+      });
+
+      const data = await response.json();  // ← read what Python returned
+
+      if (data.success) {
+        const msg = document.getElementById('setupSaveMsg');
+        msg.style.display = 'block';
+        setTimeout(() => { msg.style.display = 'none'; }, 3000);
+      } else {
+        alert(data.message);  // ← show Python's error message!
+      }
+
+    } catch {
+      alert('Could not save setup. Is the Python server running?');
+    }
+}
+
+  async function saveQA() {
+    const qa = [];
+    document.querySelectorAll('.qa-item').forEach(item => {
+      const id = item.id.replace('qa-', '');
+      const q = document.getElementById('q-' + id)?.value?.trim();
+      const a = document.getElementById('a-' + id)?.value?.trim();
+      if (q && a) qa.push({ question: q, answer: a });
+    });
+
+    try {
+      await fetch('http://localhost:8000/qa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          token: localStorage.getItem('token'), 
+          qa: qa 
+})
+      });
+
+      const msg = document.getElementById('qaSaveMsg');
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    } catch {
+      alert('Could not save Q&A. Is the Python server running?');
+    }
+  }
+
+  
+  // DASHBOARD
+  let allConversations = [];
+  let currentFilter = 'all';
+
+  async function initializeApp() {
+    initializeConnectionState();
+    // Added loadConversations() so it fetches the dashboard instantly!
+    await Promise.all([loadSetup(), loadQA(), loadConversations()]); 
+  }
+
+ async function loadConversations() {
+  try {
+    // 1. Grab the VIP pass (JWT Token) from local storage
+    const token = localStorage.getItem('token') || '';
+    if (!token) {
+        console.log("No token found. User not logged in.");
+        return; 
+    }
+
+    // 2. Fetch the real data WITH the token
+    const convRes = await fetch(`http://localhost:8000/conversations?token=${token}`);
+    allConversations = await convRes.json();
+
+    // 3. Calculate the stats locally using the real database rows
+    const total = allConversations.length;
+    const answered = allConversations.filter(c => c.status === 'answered').length;
+    const ignored = allConversations.filter(c => c.status === 'ignored').length;
+
+    // 4. Paint the stats onto the dashboard
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statAnswered').textContent = answered;
+    document.getElementById('statIgnored').textContent = ignored;
+    document.getElementById('statRate').textContent = total > 0 ? Math.round((answered / total) * 100) + '%' : '0%';
+
+    // 5. Draw the actual messages
+    renderConversations();
+    
+  } catch (error) {
+    // If it fails now, it will actually tell you instead of faking it!
+    console.error("Critical Error loading dashboard from database:", error);
+  }
+}
+
+  function renderConversations() {
+    const filtered = currentFilter === 'all'
+      ? allConversations
+      : allConversations.filter(c => c.status === currentFilter);
+
+    document.getElementById('convList').innerHTML = filtered.map(c => `
+      <div class="conv-item">
+        <div class="conv-top">
+          <div class="conv-phone">
+            <div class="phone-dot"></div>
+            ${c.phone}
+          </div>
+          <div class="conv-meta">
+            <span class="conv-time">${c.time || ''}</span>
+            <span class="badge ${c.status === 'answered' ? 'badge-green' : 'badge-red'}">${c.status}</span>
+          </div>
+        </div>
+        <div class="msg msg-user"><span class="msg-label">User</span><span>${c.message}</span></div>
+        ${c.reply
+          ? `<div class="msg msg-bot"><span class="msg-label">Agent</span><span>${c.reply}</span></div>`
+          : `<div class="msg msg-ignored"><span class="msg-label">Agent</span><span>Not answered — forwarded to owner</span></div>`
+        }
+      </div>
+    `).join('');
+  }
+
+  function filterConv(type, btn) {
+    currentFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderConversations();
+  }
+
+  async function disconnect() {
+    try {
+      // 1. Grab the user ID
+      const userId = localStorage.getItem('user_id');
+      if (!userId) return;
+
+      resetConnectionUI();
+      document.getElementById('qrSpinner').style.display = 'block';
+      document.getElementById('qrHint').textContent = 'Disconnecting and resetting session...';
+
+      // 2. Attach it to the URL!
+      const response = await fetch(`http://localhost:3000/disconnect?userId=${userId}`, { method: 'POST' });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Disconnect request failed');
+      }
+
+      document.getElementById('qrHint').textContent = 'Session reset. Generate a new QR to connect another device.';
+      generateQR();
+    } catch {
+      document.getElementById('qrHint').textContent = 'Disconnect failed. Please check node server.';
+      document.getElementById('qrSpinner').style.display = 'none';
+      document.getElementById('qrIcon').style.display = 'flex';
+      document.getElementById('qrBtn').style.display = 'block';
+    }
+  }
+
+  async function initializeApp() {
+    initializeConnectionState();
+    await Promise.all([loadSetup(), loadQA()]);
+  }
+
+  initializeApp();
+
+function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user_id');
+      location.reload(); 
+  }
+
+  async function initializeApp() {
+    initializeConnectionState();
+    await Promise.all([loadSetup(), loadQA(), loadConversations()]);
+  }
+
+  initializeApp();
+  
+  async function initializeApp() {
+    startStatusMonitor(); // <--- Changed this line!
+    await Promise.all([loadSetup(), loadQA(), loadConversations()]);
+  }
+
+</script>
+</body>
+</html>
