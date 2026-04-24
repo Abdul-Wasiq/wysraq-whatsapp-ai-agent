@@ -15,6 +15,15 @@ If your brother messages you: *"Dahi le kar aao?"* (Bring yogurt) → The AI act
 ### 3. How does it work? (The Architecture)
 We split the brain from the body. Node.js handles the WhatsApp connection, and Python handles the AI logic. 
 
+### 4. why Wysraq?
+I was in a TCF (The Citizens Foundation) scholarship group on WhatsApp. Our sir used to message almost every week — "Beta please mujhe personal msg karna band kar dein" or "Guys please! Don't ask the same question again and again personally." Every Saturday he'd remind us: don't message on weekends.
+
+And I kept thinking — this guy is clearly using WhatsApp for his work group, but his personal life is getting destroyed because of it.
+
+Most AI WhatsApp agents I found either reply to everything or cost money. So I thought, what if I just... build something that actually understands the difference? And make it free. That's Wysraq.
+
+### 5. how does Wysraq work?
+
 ```mermaid
 graph TD;
     User[Customer/Friend on WhatsApp] -->|Sends Message| Node[Node.js Switchboard]
