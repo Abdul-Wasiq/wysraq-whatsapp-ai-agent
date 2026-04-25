@@ -702,7 +702,7 @@
     const endpoint = isLoginMode ? '/login' : '/signup';
 
     try {
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
+      const response = await fetch(`https://wysraq.me/api${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -768,7 +768,7 @@
       if (!userId) return; // Stop if not logged in
 
       // 2. Attach it to the URL!
-      const res = await fetch(`http://localhost:3000/qr?userId=${userId}`);
+      const res = await fetch(`https://wysraq.me/qr?userId=${userId}`);
       const data = await res.json();
 
       if (data.connected) {
@@ -855,7 +855,7 @@
       const userId = localStorage.getItem('user_id');
       if (!userId) return; // Stop if not logged in
 
-      const res = await fetch(`http://localhost:3000/qr?userId=${userId}`);
+      const res = await fetch(`https://wysraq.me/qr?userId=${userId}`);
       const data = await res.json();
       
       if (data.connected) {
@@ -908,7 +908,7 @@
   async function loadSetup() {
     try {
         const token = localStorage.getItem('token') || '';
-        const res = await fetch(`http://localhost:8000/setup?token=${token}`);
+        const res = await fetch(`https://wysraq.me/api/setup?token=${token}`);
         const data = await res.json();
         document.getElementById('businessDesc').value = data.business_description || '';
         document.getElementById('ownerNumber').value = (data.owner_number || '').replace('@c.us', '');
@@ -921,7 +921,7 @@ async function loadQA() {
     const token = localStorage.getItem('token') || '';
     
     // 2. Ask Python for the data, sending the token in the URL
-    const res = await fetch(`http://localhost:8000/qa?token=${token}`);
+    const res = await fetch(`https://wysraq.me/api/qa?token=${token}`);
     const data = await res.json();
 
     document.getElementById('qaList').innerHTML = '';
@@ -948,7 +948,7 @@ async function loadQA() {
     const ownerNumber = document.getElementById('ownerNumber').value.trim();
 
     try {
-      const response = await fetch('http://localhost:8000/setup', {
+      const response = await fetch('https://wysraq.me/api/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -983,7 +983,7 @@ async function loadQA() {
     });
 
     try {
-      await fetch('http://localhost:8000/qa', {
+      await fetch('https://wysraq.me/api/qa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1021,7 +1021,7 @@ async function loadQA() {
     }
 
     // 2. Fetch the real data WITH the token
-    const convRes = await fetch(`http://localhost:8000/conversations?token=${token}`);
+    const convRes = await fetch(`https://wysraq.me/api/conversations?token=${token}`);
     allConversations = await convRes.json();
 
     // 3. Calculate the stats locally using the real database rows
@@ -1088,7 +1088,7 @@ async function loadQA() {
       document.getElementById('qrHint').textContent = 'Disconnecting and resetting session...';
 
       // 2. Attach it to the URL!
-      const response = await fetch(`http://localhost:3000/disconnect?userId=${userId}`, { method: 'POST' });
+      const response = await fetch(`https://wysraq.me/disconnect?userId=${userId}`, { method: 'POST' });
       const payload = await response.json();
 
       if (!response.ok || !payload.success) {
