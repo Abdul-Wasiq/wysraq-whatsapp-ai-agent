@@ -70,7 +70,7 @@ function bindClientEvents(activeClient, userId) {
 
         try {
             // 🚀 DYNAMIC ID: Node.js knows exactly whose bot this is!
-            const response = await axios.post('http://localhost:8000/chat', {
+            const response = await axios.post('http://127.0.0.1:8000/chat', {
                 user_id: parseInt(userId), 
                 phone: msg.from,
                 message: msg.body
@@ -159,9 +159,10 @@ const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const userId = url.searchParams.get('userId');
 
-    if (!userId) {
-        res.statusCode = 400;
-        return res.end(JSON.stringify({ error: "Missing userId parameter" }));
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+        res.setHeader('Content-Type', 'text/html');
+        fs.createReadStream(path.join(__dirname, 'index.html')).pipe(res);
+        return;
     }
 
     const session = getSession(userId);
