@@ -446,6 +446,106 @@
     /* BOUNCY EFFECT */
     .page { animation: fadeIn 0.25s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── MOBILE RESPONSIVE ── */
+    @media (max-width: 640px) {
+
+      /* Navbar: shrink padding, hide logout text, compress tabs */
+      .navbar {
+        padding: 0 16px;
+        height: 56px;
+      }
+
+      .brand { font-size: 17px; }
+
+      .nav-tabs {
+        gap: 2px;
+        padding: 3px;
+      }
+
+      .tab {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      /* Hide status badge text on mobile, keep dot color */
+      .status-badge {
+        font-size: 0;
+        width: 10px;
+        height: 10px;
+        padding: 0;
+        border-radius: 50%;
+      }
+      .status-badge.online { background: var(--green); }
+      .status-badge.offline { background: var(--red); }
+
+      /* Logout button smaller */
+      .btn-outline { padding: 5px 10px; font-size: 12px; }
+
+      /* Pages: tighter padding */
+      .page { padding: 24px 16px; }
+
+      .page-title { font-size: 22px; }
+      .page-sub { font-size: 13px; margin-bottom: 20px; }
+
+      /* Connect page: stack QR on top, How it works below */
+      .connect-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .qr-box { min-height: 260px; }
+
+      /* How it works steps: more compact */
+      .step { padding: 10px 0; gap: 10px; }
+      .step-title { font-size: 13px; }
+      .step-desc { font-size: 12px; }
+
+      /* Stats grid: 2x2 on mobile */
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .stat-card { padding: 14px; }
+      .stat-num { font-size: 26px; }
+      .stat-label { font-size: 11px; }
+
+      /* Q&A items: fix the 3-col grid on small screens */
+      .qa-item {
+        grid-template-columns: 20px 1fr auto;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      /* Conversation items */
+      .conv-item { padding: 12px 14px; }
+
+      .conv-phone { font-size: 11px; }
+      .conv-time { font-size: 10px; }
+
+      /* Conv top row: allow phone number to truncate */
+      .conv-top { gap: 8px; }
+      .conv-phone { max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* Messages */
+      .msg { font-size: 12px; padding: 6px 10px; }
+
+      /* Auth modal full width on mobile */
+      .modal-content {
+        margin: 16px;
+        padding: 24px 20px;
+        max-width: 100%;
+        border-radius: 16px;
+      }
+
+      /* Buttons full width on mobile for save actions */
+      .save-row { flex-direction: column; align-items: stretch; }
+      .save-row .btn { width: 100%; text-align: center; }
+
+      /* Card padding tighter */
+      .card { padding: 16px; }
+    }
   </style>
 </head>
 <body>
