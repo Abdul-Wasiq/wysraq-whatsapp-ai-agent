@@ -159,12 +159,11 @@ const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const userId = url.searchParams.get('userId');
 
-    if (url.pathname === '/' || url.pathname === '/index.html') {
-        res.setHeader('Content-Type', 'text/html');
-        fs.createReadStream(path.join(__dirname, 'index.html')).pipe(res);
-        return;
-    }
-
+    if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/dashboard') {
+    res.setHeader('Content-Type', 'text/html');
+    fs.createReadStream(path.join(__dirname, 'index.html')).pipe(res);
+    return;
+}
     const session = getSession(userId);
 
     if (url.pathname === '/qr' && req.method === 'GET') {
