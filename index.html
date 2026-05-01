@@ -787,6 +787,60 @@
     .modal-close:hover { background: var(--bg3); color: var(--text); }
  
     /* ─────────────────────────────────────────
+       TOAST NOTIFICATIONS
+    ───────────────────────────────────────── */
+    #toastContainer {
+      position: fixed;
+      top: 76px;
+      right: 20px;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      background: var(--modal-bg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      min-width: 240px;
+      max-width: 320px;
+      pointer-events: all;
+      animation: toastIn 0.35s cubic-bezier(.34,1.2,.64,1) forwards;
+    }
+
+    .toast.toast-success { border-left: 3px solid var(--accent); }
+    .toast.toast-error   { border-left: 3px solid var(--red); }
+    .toast.toast-info    { border-left: 3px solid var(--blue); }
+
+    .toast-icon { font-size: 16px; flex-shrink: 0; }
+    .toast-text { flex: 1; line-height: 1.4; }
+
+    .toast.hiding {
+      animation: toastOut 0.3s ease forwards;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(60px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(60px); }
+    }
+
+    /* ─────────────────────────────────────────
        MOBILE
     ───────────────────────────────────────── */
     @media (max-width: 640px) {
@@ -857,6 +911,9 @@
       </div>
     </div>
   </div>
+ 
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer"></div>
  
   <!-- NAVBAR -->
   <nav class="navbar">
@@ -1020,6 +1077,22 @@
  
 <script>
   /* ─────────────────────────────────────────
+     TOAST NOTIFICATIONS
+  ───────────────────────────────────────── */
+  function showToast(message, type = 'success') {
+    const icons = { success: '✓', error: '✕', info: 'ℹ' };
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `<span class="toast-icon">${icons[type]}</span><span class="toast-text">${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('hiding');
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  /* ─────────────────────────────────────────
      THEME TOGGLE
   ───────────────────────────────────────── */
   function toggleTheme() {
@@ -1089,12 +1162,13 @@
         localStorage.setItem('user_id', data.user_id);
         localStorage.setItem('token', data.token);
         closeAuthModal();
+        showToast(isLoginMode ? 'Welcome back! You are logged in.' : 'Account created! Welcome to Wysraq.', 'success');
         startStatusMonitor();
         loadConversations();
         await loadSetup();
         await loadQA();
       } else {
-        alert('Error: ' + data.message);
+        showToast('Error: ' + data.message, 'error');
       }
     } catch {
       alert('Could not connect to Python server.');
@@ -1164,6 +1238,7 @@
     document.getElementById('qrHint').textContent           = 'WhatsApp Connected!';
     document.getElementById('qrBtn').textContent            = 'Continue to Setup →';
     document.getElementById('qrBtn').style.display          = 'block';
+    showToast('WhatsApp connected successfully!', 'success');
     document.getElementById('qrBtn').onclick = () => {
       document.querySelector('.tab:nth-child(2)').click();
     };
@@ -1313,24 +1388,26 @@
   }
  
   async function saveSetup() {
+    const token = localStorage.getItem('token');
+    if (!token) { openAuthModal(); showToast('Please sign in first to save setup.', 'info'); return; }
     const businessDescription = document.getElementById('businessDesc').value.trim();
     const ownerNumber         = document.getElementById('ownerNumber').value.trim();
     try {
       const response = await fetch('https://wysraq.me/api/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: localStorage.getItem('token'), business_description: businessDescription, owner_number: ownerNumber })
+        body: JSON.stringify({ token, business_description: businessDescription, owner_number: ownerNumber })
       });
       const data = await response.json();
       if (data.success) {
-        const msg = document.getElementById('setupSaveMsg');
-        msg.style.display = 'block';
-        setTimeout(() => { msg.style.display = 'none'; }, 3000);
-      } else { alert(data.message); }
-    } catch { alert('Could not save setup. Is the Python server running?'); }
+        showToast('Setup saved successfully!', 'success');
+      } else { showToast('Error: ' + data.message, 'error'); }
+    } catch { showToast('Could not save setup. Is the Python server running?', 'error'); }
   }
  
   async function saveQA() {
+    const token = localStorage.getItem('token');
+    if (!token) { openAuthModal(); showToast('Please sign in first to save Q&A.', 'info'); return; }
     const qa = [];
     document.querySelectorAll('.qa-item').forEach(item => {
       const id = item.id.replace('qa-', '');
@@ -1342,12 +1419,10 @@
       await fetch('https://wysraq.me/api/qa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: localStorage.getItem('token'), qa })
+        body: JSON.stringify({ token, qa })
       });
-      const msg = document.getElementById('qaSaveMsg');
-      msg.style.display = 'block';
-      setTimeout(() => { msg.style.display = 'none'; }, 3000);
-    } catch { alert('Could not save Q&A. Is the Python server running?'); }
+      showToast('Q&A saved successfully!', 'success');
+    } catch { showToast('Could not save Q&A. Is the Python server running?', 'error'); }
   }
  
   /* ─────────────────────────────────────────
@@ -1427,7 +1502,12 @@
  
   async function initializeApp() {
     initializeConnectionState();
-    await Promise.all([loadSetup(), loadQA(), loadConversations()]);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      openAuthModal();
+    } else {
+      await Promise.all([loadSetup(), loadQA(), loadConversations()]);
+    }
   }
  
   initializeApp();
