@@ -87,7 +87,7 @@ class Message(BaseModel):
 
 class GoogleAuthPayload(BaseModel):
     credential: str
-    
+
 # def _read_json(file_path: Path, default: Any) -> Any:
 #     if not file_path.exists():
 #         return default
@@ -428,7 +428,55 @@ def loginUser(payload: AuthPayload):
         return {"success": True, "token": token, "user_id": user["id"]}
     else:
         return {"success": False, "message": "Invalid username or password"}
-    
+
+@app.post("/auth/google")
+def googleAuth(payload: GoogleAuthPayload):
+    try:
+        GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+        idinfo = id_token.verify_oauth2_token(
+            payload.credential,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+        email = idinfo.get("email")
+        name = idinfo.get("name", email.split("@")[0])
+
+        if not email:
+            return {"success": False, "message": "Could not get email from Google"}
+
+        # Check if user exists
+        conn = None
+        try:
+            from database import dbConn
+            conn = dbConn()
+            curs = conn.cursor()
+            from psycopg2.extras import RealDictCursor
+            curs = conn.cursor(cursor_factory=RealDictCursor)
+            curs.execute("SELECT * FROM users WHERE email = %s", (email,))
+            user = curs.fetchone()
+
+            if not user:
+                # Create new user with no password
+                curs.execute(
+                    "INSERT INTO users(name, email, password) VALUES(%s, %s, %s) RETURNING *",
+                    (name, email, "GOOGLE_AUTH")
+                )
+                conn.commit()
+                curs.execute("SELECT * FROM users WHERE email = %s", (email,))
+                user = curs.fetchone()
+
+            token = createToken(user["id"])
+            return {"success": True, "token": token, "user_id": user["id"]}
+
+        finally:
+            if conn:
+                curs.close()
+                conn.close()
+
+    except Exception as e:
+        print(f"Google auth error: {e}")
+        return {"success": False, "message": "Google authentication failed"}
+        
 @app.post("/signup")
 def signupUser(payload: AuthPayload):
     success = addUser(payload.username, payload.password, payload.email)
