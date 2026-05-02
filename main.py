@@ -386,16 +386,6 @@ def chat(msg: Message) -> dict[str, Any]:
 
     print(f"Gate 1 → is_business_query={is_business_query}, reason={gate1_reason}")
 
-    # ── GATE 2: Judge Layer ───────────────────────
-    if is_business_query:
-        judge_prompt = _build_judge_prompt(config, qa_items, msg.message, gate1_reason)
-        judge_raw = _call_groq(judge_prompt, msg.message, temperature=0.0)
-        judge = _extract_json_object(judge_raw)
-        approved = bool(judge.get("approve", False))
-        print(f"Gate 2 (Judge) → approved={approved}, reason={judge.get('reason', '')}")
-        if not approved:
-            is_business_query = False
-
     # ── REPLY ─────────────────────────────────────
     if not is_business_query:
         status = "ignored"

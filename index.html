@@ -1253,7 +1253,9 @@
       clearInterval(qrInterval);
     }
   }
- 
+
+  let _connectedToastShown = false;
+
   function showConnected() {
     document.getElementById('qrImg').style.display          = 'none';
     document.getElementById('qrIcon').style.display         = 'none';
@@ -1262,7 +1264,10 @@
     document.getElementById('qrHint').textContent           = 'WhatsApp Connected!';
     document.getElementById('qrBtn').textContent            = 'Continue to Setup →';
     document.getElementById('qrBtn').style.display          = 'block';
-    showToast('WhatsApp connected successfully!', 'success');
+    if (!_connectedToastShown) {
+  showToast('WhatsApp connected successfully!', 'success');
+  _connectedToastShown = true;
+}
     document.getElementById('qrBtn').onclick = () => {
       document.querySelector('.tab:nth-child(2)').click();
     };
