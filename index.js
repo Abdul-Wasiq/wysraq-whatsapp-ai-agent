@@ -37,7 +37,8 @@ function getSession(userId) {
             client: null,
             qr: null,
             isConnected: false,
-            isStarting: false
+            isStarting: false,
+            replyToGroups: false
         };
     }
     return sessions[userId];
@@ -70,10 +71,12 @@ function bindClientEvents(activeClient, userId) {
 
         try {
             // 🚀 DYNAMIC ID: Node.js knows exactly whose bot this is!
+            const replyToGroups = sessions[userId]?.replyToGroups || false;
             const response = await axios.post('http://127.0.0.1:8000/chat', {
                 user_id: parseInt(userId), 
                 phone: msg.from,
-                message: msg.body
+                message: msg.body,
+                reply_to_groups: replyToGroups
             });
 
             const status = response.data.status;

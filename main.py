@@ -77,9 +77,10 @@ class QAPayload(BaseModel):
     qa: list[QAItem] = Field(default_factory=list)
 
 class Message(BaseModel):
-    user_id: int   # <-- Added this so Node.js can tell Python who the owner is
+    user_id: int
     phone: str
     message: str
+    reply_to_groups: bool = False
 
 # def _read_json(file_path: Path, default: Any) -> Any:
 #     if not file_path.exists():
@@ -197,25 +198,57 @@ def _build_decision_prompt(config: dict[str, Any], qa_items: list[dict[str, str]
     qa_text = "\n".join(qa_text_lines) if qa_text_lines else "No Q&A pairs available."
 
     return (
-        "You are a strict intent router for a WhatsApp business assistant.\n"
+        "You are an EXTREMELY strict intent classifier for a WhatsApp business assistant.\n"
         f"Business description: {config.get('business_description', '')}\n\n"
         "Q&A knowledge base:\n"
         f"{qa_text}\n\n"
-        "RULES - read carefully:\n"
-        "1) Mark is_business_query=true ONLY if the message is clearly asking about this specific business "
-        "(its services, products, pricing, hours, process, etc.).\n"
-        "2) Mark is_business_query=false for ALL of these - ignore them completely:\n"
-        "   - Greetings only (Hi, Hello, Salam, etc.) with no business question\n"
-        "   - Personal or casual chat\n"
-        "   - Random short phrases that are NOT a question about the business\n"
-        "   - Instructions or commands to the bot\n"
-        "3) For intent matching, the user may write in Urdu, Roman Urdu, or English - match by MEANING not by exact words.\n"
-        "4) Only match a Q&A item if the core intent is genuinely the same - do NOT match based on one similar word.\n"
-        "5) If no Q&A item clearly matches the intent, set qa_index = -1.\n\n"
+        "YOUR ONLY JOB: Decide if this message is DIRECTLY asking about this specific business.\n\n"
+        "STRICT RULES:\n"
+        "1) is_business_query=true ONLY IF the message is CLEARLY and DIRECTLY asking about "
+        "this business's services, products, pricing, hours, availability, or process.\n"
+        "2) WHEN IN DOUBT → is_business_query=false. A false negative (missing a real query) "
+        "is FAR better than a false positive (replying to a wrong message).\n"
+        "3) ALWAYS false — no exceptions:\n"
+        "   - Greetings with no business question (Hi, Hello, Salam, Assalamualaikum)\n"
+        "   - Personal, casual, or emotional messages\n"
+        "   - Announcements or statements not directed at the business\n"
+        "   - Instructions or commands to the bot itself\n"
+        "   - Messages that are complaints, rants, or unrelated opinions\n"
+        "   - Any message where you are not 100% sure it is about THIS business\n"
+        "4) Language: match by MEANING across Urdu, Roman Urdu, English — not exact words.\n"
+        "5) Q&A matching: only match if the core intent is IDENTICAL. "
+        "One similar word is NOT enough. If unsure → qa_index=-1.\n"
+        "6) If qa_index=-1 but is_business_query=true, the answer will be AI-generated.\n\n"
         "Return STRICT JSON only, no explanation, no markdown:\n"
         '{"is_business_query": true/false, "qa_index": number, "reason": "short reason"}'
     )
 
+def _build_judge_prompt(config: dict[str, Any], qa_items: list[dict[str, str]], original_message: str, gate1_reason: str) -> str:
+    qa_text_lines: list[str] = []
+    for idx, item in enumerate(qa_items):
+        qa_text_lines.append(
+            f"{idx}. QUESTION: {item.get('question', '')}\n   ANSWER: {item.get('answer', '')}"
+        )
+    qa_text = "\n".join(qa_text_lines) if qa_text_lines else "No Q&A pairs available."
+ 
+    return (
+        "You are a JUDGE reviewing a decision made by another AI.\n"
+        f"Business description: {config.get('business_description', '')}\n\n"
+        "Q&A knowledge base:\n"
+        f"{qa_text}\n\n"
+        f"The message received was: \"{original_message}\"\n"
+        f"The first AI said this IS a business query. Its reason: \"{gate1_reason}\"\n\n"
+        "YOUR JOB: Verify this decision. Be a skeptic. Ask yourself:\n"
+        "- Is this message GENUINELY asking about this specific business?\n"
+        "- Could this message be personal, casual, or unrelated?\n"
+        "- Would a reasonable human business owner want to reply to this?\n"
+        "- Is the first AI's reason convincing and logical?\n\n"
+        "STRICT RULE: If you have ANY doubt → approve=false.\n"
+        "It is better to miss a customer than to embarrass the business owner.\n\n"
+        "Return STRICT JSON only, no explanation, no markdown:\n"
+        '{"approve": true/false, "reason": "short reason"}'
+    )
+ 
 def _build_answer_prompt(config: dict[str, Any], user_message: str) -> str:
     return (
         "You are a WhatsApp business assistant.\n"
@@ -329,24 +362,44 @@ def chat(msg: Message) -> dict[str, Any]:
     config = getConfig(msg.user_id) 
     qa_items = getUserQA(msg.user_id) 
     
-    # Safety check: If the DevX client hasn't set up a description yet
     if not config:
         config = {"business_description": "No description provided", "owner_number": ""}
 
     print(f"Phone: {msg.phone}")
     print(f"Message: {msg.message}")
+    print(f"Reply to groups: {msg.reply_to_groups}")
 
+    # ── GROUP FILTER ──────────────────────────────
+    is_group = msg.phone.endswith("@g.us")
+    if is_group and not msg.reply_to_groups:
+        print(f"🚫 Group message ignored (reply_to_groups=False)")
+        return {"status": "ignored", "reply": None, "owner": config.get("owner_number", "")}
+
+    # ── GATE 1: Intent Classifier ─────────────────
     decision_prompt = _build_decision_prompt(config, qa_items)
     decision_raw = _call_groq(decision_prompt, msg.message, temperature=0.0)
     decision = _extract_json_object(decision_raw)
 
     is_business_query = bool(decision.get("is_business_query", False))
     qa_index = int(decision.get("qa_index", -1)) if str(decision.get("qa_index", "-1")).lstrip("-").isdigit() else -1
+    gate1_reason = decision.get("reason", "")
 
-    # 1. Determine Status and Reply
+    print(f"Gate 1 → is_business_query={is_business_query}, reason={gate1_reason}")
+
+    # ── GATE 2: Judge Layer ───────────────────────
+    if is_business_query:
+        judge_prompt = _build_judge_prompt(config, qa_items, msg.message, gate1_reason)
+        judge_raw = _call_groq(judge_prompt, msg.message, temperature=0.0)
+        judge = _extract_json_object(judge_raw)
+        approved = bool(judge.get("approve", False))
+        print(f"Gate 2 (Judge) → approved={approved}, reason={judge.get('reason', '')}")
+        if not approved:
+            is_business_query = False
+
+    # ── REPLY ─────────────────────────────────────
     if not is_business_query:
         status = "ignored"
-        reply = None  # Empty reply for ignored messages
+        reply = None
     else:
         status = "answered"
         if 0 <= qa_index < len(qa_items):
@@ -355,8 +408,6 @@ def chat(msg: Message) -> dict[str, Any]:
             answer_prompt = _build_answer_prompt(config, msg.message)
             reply = _call_groq(answer_prompt, msg.message, temperature=0.3)
 
-    # 2. THE CRITICAL STEP: Save to Database
-    # We pass everything directly to database.py
     save_success = saveConversation(msg.user_id, msg.phone, msg.message, reply, status)
     
     if save_success:
@@ -364,7 +415,6 @@ def chat(msg: Message) -> dict[str, Any]:
     else:
         print("❌ Failed to save conversation to database.")
 
-    # 3. Return the payload to Node.js so it can actually text the user back
     return {
         "status": status,
         "reply": reply,
@@ -422,5 +472,3 @@ def save_qa(payload: QAPayload):
         return {"success": True, "message": "Q&A updated in database"}
     except Exception as e:
         return {"success": False, "message": str(e)} 
-
-    

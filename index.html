@@ -1046,9 +1046,15 @@
  
     <div class="card">
       <div class="qa-header">
-        <div class="card-label" style="margin:0">Knowledge Base</div>
-        <button class="btn-outline" onclick="addQA()">+ Add Q&A</button>
-      </div>
+    <div class="card-label" style="margin:0">Knowledge Base</div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="btn-outline" id="groupToggleBtn" onclick="toggleGroupReply()" 
+        title="Reply to group messages">
+        Groups: OFF
+      </button>
+      <button class="btn-outline" onclick="addQA()">+ Add Q&A</button>
+    </div>
+  </div>
       <div id="qaList"></div>
       <div class="save-row">
         <span class="save-msg" id="qaSaveMsg">✓ Q&A saved</span>
@@ -1500,6 +1506,25 @@
     btn.classList.add('active');
     renderConversations();
   }
+
+  let groupReplyEnabled = false;
+
+async function toggleGroupReply() {
+  const userId = localStorage.getItem('user_id');
+  if (!userId) { openAuthModal(); return; }
+  groupReplyEnabled = !groupReplyEnabled;
+  document.getElementById('groupToggleBtn').textContent = 
+    groupReplyEnabled ? 'Groups: ON ✓' : 'Groups: OFF';
+  document.getElementById('groupToggleBtn').style.color = 
+    groupReplyEnabled ? 'var(--accent)' : '';
+  await fetch(`https://wysraq.me/set-group-reply?userId=${userId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled: groupReplyEnabled })
+  });
+  showToast(`Group replies ${groupReplyEnabled ? 'enabled' : 'disabled'}`, 
+    groupReplyEnabled ? 'success' : 'info');
+}
  
   /* ─────────────────────────────────────────
      LOGOUT
