@@ -17,6 +17,9 @@ from pydantic import BaseModel, Field
 
 from jose import JWTError, jwt
 
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
 
 load_dotenv()
 
@@ -82,6 +85,9 @@ class Message(BaseModel):
     message: str
     reply_to_groups: bool = False
 
+class GoogleAuthPayload(BaseModel):
+    credential: str
+    
 # def _read_json(file_path: Path, default: Any) -> Any:
 #     if not file_path.exists():
 #         return default

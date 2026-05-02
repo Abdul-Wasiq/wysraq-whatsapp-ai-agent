@@ -200,6 +200,17 @@ const server = http.createServer((req, res) => {
 
         res.end(JSON.stringify({ success: true }));
     }
+    else if (url.pathname === '/set-group-reply' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+        const data = JSON.parse(body || '{}');
+        if (sessions[userId]) {
+            sessions[userId].replyToGroups = !!data.enabled;
+        }
+        res.end(JSON.stringify({ success: true }));
+    });
+}
     else {
         res.end(JSON.stringify({ ok: true }));
     }

@@ -8,6 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     /* ─────────────────────────────────────────
        THEME VARIABLES
@@ -919,6 +920,8 @@
         <input type="password" id="authPass" placeholder="••••••••" />
       </div>
       <button class="btn" style="width: 100%; margin-bottom: 14px; padding: 12px;" onclick="submitAuth()">Sign In</button>
+    <div style="text-align:center; margin-bottom:14px; color:var(--text3); font-size:12px;">or</div>
+    <div id="googleBtn" style="display:flex; justify-content:center;"></div>
       <div class="form-hint" style="text-align: center;">
         <span id="authToggleText">Don't have an account?</span>
         <a href="#" style="color: var(--accent); text-decoration: none; font-weight: 600; margin-left: 4px;" onclick="toggleAuthMode(event)">Sign Up</a>
@@ -1024,7 +1027,12 @@
       <div class="card-label">Business Info</div>
       <div class="form-group">
         <label class="form-label">Business Description</label>
-        <textarea id="businessDesc" placeholder="e.g. TCF Scholarship Program — we provide financial support to university students..."></textarea>
+      <textarea id="businessDesc" placeholder="e.g. We are a medicine shop. We also handle scholarship queries for students..."></textarea>
+      <div class="form-hint" style="margin-top:8px; line-height:1.6;">
+        💡 <strong>Tip:</strong> If your AI is ignoring a question even though it's in your Q&A, 
+        mention that topic here. Example: if you added scholarship Q&A but AI ignores it, 
+        add "We also handle scholarship queries" in the description above.
+      </div>
       </div>
       <div class="form-group">
         <label class="form-label">Owner WhatsApp Number</label>
@@ -1559,7 +1567,47 @@ async function toggleGroupReply() {
     const userId = localStorage.getItem('user_id');
     if (userId) startStatusMonitor();
   }
- 
+  
+  function initGoogleSignIn() {
+    google.accounts.id.initialize({
+        client_id: '1062917078948-8knj0mdrll5rujnvjkc26pm6hpftn8ig.apps.googleusercontent.com',
+        callback: async (response) => {
+            try {
+                const res = await fetch('https://wysraq.me/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('user_id', data.user_id);
+                    localStorage.setItem('token', data.token);
+                    closeAuthModal();
+                    showToast('Signed in with Google!', 'success');
+                    updateNavAuth();
+                    startStatusMonitor();
+                    await loadSetup();
+                    await loadQA();
+                    loadConversations();
+                } else {
+                    showToast('Google sign in failed: ' + data.message, 'error');
+                }
+            } catch {
+                showToast('Could not connect to server.', 'error');
+            }
+        }
+    });
+    google.accounts.id.renderButton(
+        document.getElementById('googleBtn'),
+        { theme: 'filled_black', size: 'large', width: 336 }
+    );
+}
+
+window.addEventListener('load', () => {
+    if (typeof google !== 'undefined') initGoogleSignIn();
+    else setTimeout(initGoogleSignIn, 1000);
+});
+
   async function initializeApp() {
     updateNavAuth();
     initializeConnectionState();
