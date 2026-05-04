@@ -236,19 +236,18 @@ def getAllUsers():
         conn = dbConn()
         curs = conn.cursor(cursor_factory=RealDictCursor)
         curs.execute("""
-            SELECT 
+            SELECT
                 u.id,
                 u.name,
                 u.email,
                 u.is_premium,
-                u.created_at,
                 COUNT(DISTINCT q.id) as qa_count,
                 COUNT(DISTINCT c.id) as total_messages
             FROM users u
             LEFT JOIN qa q ON q.user_id = u.id
             LEFT JOIN conversations c ON c.user_id = u.id
-            GROUP BY u.id, u.name, u.email, u.is_premium, u.created_at
-            ORDER BY u.created_at DESC
+            GROUP BY u.id, u.name, u.email, u.is_premium
+            ORDER BY u.id DESC
         """)
         return curs.fetchall()
     except Exception as e:
