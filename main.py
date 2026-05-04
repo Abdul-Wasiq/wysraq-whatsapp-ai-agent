@@ -376,3 +376,17 @@ def adminSetPremium(payload: PremiumPayload):
     if success:
         return {"success": True, "message": f"User updated to {'Premium ⭐' if payload.is_premium else 'Free'}"}
     return {"success": False, "message": "Database error"}
+
+@app.get("/admin/stats")
+def adminGetStats(password: str = ""):
+    if password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    users = getAllUsers()
+    total_users = len(users)
+    premium_users = sum(1 for u in users if u["is_premium"])
+    total_messages = sum(u["total_messages"] or 0 for u in users)
+    return {
+        "total_users": total_users,
+        "premium_users": premium_users,
+        "total_messages": total_messages
+    }
