@@ -167,6 +167,12 @@ const server = http.createServer((req, res) => {
     fs.createReadStream(path.join(__dirname, 'index.html')).pipe(res);
     return;
 }
+
+if (url.pathname === '/admin' || url.pathname === '/admin.html') {
+    res.setHeader('Content-Type', 'text/html');
+    fs.createReadStream(path.join(__dirname, 'admin.html')).pipe(res);
+    return;
+}
     const session = getSession(userId);
 
     if (url.pathname === '/qr' && req.method === 'GET') {
