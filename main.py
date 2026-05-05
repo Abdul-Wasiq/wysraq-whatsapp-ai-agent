@@ -5,7 +5,8 @@ from pathlib import Path
 import threading
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
 from database import getUser, addUser, configration, getConfig, addQAs, delQA, getUserQA, getConversations, saveConversation, getUserPlan, getQACount, setPremium, getAllUsers
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -30,8 +31,8 @@ MODEL_NAME = "llama-3.3-70b-versatile"
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
-FREE_QA_LIMIT = 5
-PREMIUM_QA_LIMIT = 12
+FREE_QA_LIMIT = 3
+PREMIUM_QA_LIMIT = 15 
 
 BASE_DIR = Path(__file__).resolve().parent
 storage_lock = threading.Lock()
@@ -365,7 +366,7 @@ def adminGetUsers(password: str = ""):
         "plan": "Premium ⭐" if u["is_premium"] else "Free",
         "qa_count": u["qa_count"],
         "total_messages": u["total_messages"],
-        "joined": u["created_at"].strftime("%d %b %Y") if u["created_at"] else ""
+        "joined": ""
     } for u in users]}
 
 @app.post("/admin/set-premium")
@@ -390,3 +391,81 @@ def adminGetStats(password: str = ""):
         "premium_users": premium_users,
         "total_messages": total_messages
     }
+
+import hashlib
+import hmac
+from datetime import datetime
+
+JAZZCASH_MERCHANT_ID = os.getenv("JAZZCASH_MERCHANT_ID", "")
+JAZZCASH_PASSWORD = os.getenv("JAZZCASH_PASSWORD", "")
+JAZZCASH_INTEGRITY_SALT = os.getenv("JAZZCASH_INTEGRITY_SALT", "")
+JAZZCASH_RETURN_URL = os.getenv("JAZZCASH_RETURN_URL", "https://wysraq.me/payment-success")
+JAZZCASH_ENV = os.getenv("JAZZCASH_ENV", "sandbox")
+
+@app.post("/jazzcash/initiate")
+def jazzcashInitiate(payload: TokenPayload):
+    user_id = verifyToken(payload.token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    txn_ref = f"T{datetime.now().strftime('%Y%m%d%H%M%S')}{user_id}"
+    txn_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
+    txn_expiry = datetime.now().replace(hour=23, minute=59, second=59).strftime("%Y%m%d%H%M%S")
+    amount = "30000"  # Rs. 300 in paisas
+    
+    # Generate secure hash
+    data_to_hash = "&".join([
+        JAZZCASH_INTEGRITY_SALT,
+        JAZZCASH_MERCHANT_ID,
+        JAZZCASH_PASSWORD,
+        amount,
+        "",  # pp_BillReference
+        "",  # pp_Description  
+        txn_datetime,
+        txn_expiry,
+        "PKR",
+        txn_ref
+    ])
+    secure_hash = hmac.new(
+        JAZZCASH_INTEGRITY_SALT.encode(),
+        data_to_hash.encode(),
+        hashlib.sha256
+    ).hexdigest().upper()
+    
+    base_url = "https://sandbox.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform" if JAZZCASH_ENV == "sandbox" else "https://payments.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform"
+    
+    params = {
+        "pp_Version": "1.1",
+        "pp_TxnType": "MWALLET",
+        "pp_Language": "EN",
+        "pp_MerchantID": JAZZCASH_MERCHANT_ID,
+        "pp_Password": JAZZCASH_PASSWORD,
+        "pp_TxnRefNo": txn_ref,
+        "pp_Amount": amount,
+        "pp_TxnCurrency": "PKR",
+        "pp_TxnDateTime": txn_datetime,
+        "pp_BillReference": "",
+        "pp_Description": "Wysraq Premium",
+        "pp_TxnExpiryDateTime": txn_expiry,
+        "pp_ReturnURL": JAZZCASH_RETURN_URL,
+        "pp_SecureHash": secure_hash,
+        "ppmpf_1": str(user_id)
+    }
+    
+    from urllib.parse import urlencode
+    redirect_url = f"{base_url}?{urlencode(params)}"
+    return {"redirect_url": redirect_url}
+
+@app.post("/jazzcash/webhook")
+async def jazzcashWebhook(request: Request):
+    form = await request.form()
+    data = dict(form)
+    response_code = data.get("pp_ResponseCode", "")
+    user_id = data.get("ppmpf_1", "")
+    if response_code == "000" and user_id:
+        setPremium(int(user_id), True)
+    return {"status": "ok"}
+
+@app.get("/payment-success")
+def paymentSuccess():
+    return FileResponse("payment-success.html")

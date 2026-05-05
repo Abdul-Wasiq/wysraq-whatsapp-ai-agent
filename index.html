@@ -154,7 +154,66 @@
       height: 60px;
       transition: var(--transition-theme);
     }
- 
+    .btn-upgrade {
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-upgrade:hover { opacity: 0.85; }
+
+/* Upgrade Modal */
+.upgrade-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.upgrade-modal-overlay.open { display: flex; }
+.upgrade-modal {
+  background: var(--card, #1a1a2e);
+  border-radius: 16px;
+  padding: 36px 32px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.upgrade-modal h2 { font-size: 24px; margin-bottom: 8px; }
+.upgrade-modal .price { font-size: 36px; font-weight: 800; color: #ffd200; margin: 16px 0 4px; }
+.upgrade-modal .price span { font-size: 16px; font-weight: 400; color: #aaa; }
+.upgrade-modal ul { list-style: none; padding: 0; margin: 16px 0 24px; text-align: left; }
+.upgrade-modal ul li { padding: 6px 0; font-size: 14px; }
+.upgrade-modal ul li::before { content: "✓ "; color: #ffd200; font-weight: 700; }
+.btn-pay {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.btn-pay:hover { opacity: 0.9; }
+.btn-cancel-upgrade {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 4px;
+}
     .brand {
       display: flex;
       align-items: center;
@@ -926,6 +985,7 @@
 }
   </style>
 </head>
+
 <body>
  
   <!-- AUTH MODAL -->
@@ -988,6 +1048,7 @@
  
       <div class="status-badge offline" id="statusBadge">Disconnected</div>
       <span class="nav-email" id="navEmail" style="display:none;"></span>
+      <button class="btn-upgrade" id="upgradeBtn" onclick="openUpgradeModal()" style="display:none;">⭐ Upgrade</button>
       <button class="btn-outline" id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
       <button class="btn" id="loginBtn" onclick="openAuthModal()" style="padding: 7px 18px; font-size: 13px;">Sign In</button>
     </div>
@@ -1135,7 +1196,25 @@
  
     <div id="convList"></div>
   </div>
- 
+ <!-- UPGRADE MODAL -->
+<div class="upgrade-modal-overlay" id="upgradeModalOverlay">
+  <div class="upgrade-modal">
+    <div style="font-size:40px;margin-bottom:8px;">⭐</div>
+    <h2>Upgrade to Premium</h2>
+    <p style="color:#aaa;font-size:14px;">You've reached the free plan limit of 3 Q&A pairs.</p>
+    <div class="price">Rs. 300 <span>/ month</span></div>
+    <ul>
+      <li>15 Q&A pairs (vs 3 free)</li>
+      <li>Priority AI responses</li>
+      <li>Full conversation history</li>
+      <li>Early access to new features</li>
+    </ul>
+    <button class="btn-pay" onclick="startJazzCashPayment()">💳 Pay with JazzCash</button>
+    <br>
+    <button class="btn-cancel-upgrade" onclick="closeUpgradeModal()">Maybe later</button>
+  </div>
+</div>
+
 <script>
   /* ─────────────────────────────────────────
      TOAST NOTIFICATIONS
@@ -1400,21 +1479,29 @@
   ───────────────────────────────────────── */
   let qaCount = 0;
  
-  function addQA(question = '', answer = '') {
-    qaCount++;
-    const div = document.createElement('div');
-    div.className = 'qa-item';
-    div.id = 'qa-' + qaCount;
-    div.innerHTML = `
-      <div class="qa-num">${String(qaCount).padStart(2,'0')}</div>
-      <div class="qa-fields">
-        <input type="text" placeholder="Question..." id="q-${qaCount}" value="${escapeHtml(question)}"/>
-        <textarea rows="2" placeholder="Answer..." id="a-${qaCount}">${escapeHtml(answer)}</textarea>
-      </div>
-      <button class="btn-danger" onclick="removeQA(${qaCount})">✕</button>
-    `;
-    document.getElementById('qaList').appendChild(div);
+  let qaLimit = 3;
+let isPremium = false;
+
+function addQA(question = '', answer = '') {
+  const currentCount = document.querySelectorAll('.qa-item').length;
+  if (currentCount >= qaLimit) {
+    openUpgradeModal();
+    return;
   }
+  qaCount++;
+  const div = document.createElement('div');
+  div.className = 'qa-item';
+  div.id = 'qa-' + qaCount;
+  div.innerHTML = `
+    <div class="qa-num">${String(qaCount).padStart(2,'0')}</div>
+    <div class="qa-fields">
+      <input type="text" placeholder="Question..." id="q-${qaCount}" value="${escapeHtml(question)}"/>
+      <textarea rows="2" placeholder="Answer..." id="a-${qaCount}">${escapeHtml(answer)}</textarea>
+    </div>
+    <button class="btn-danger" onclick="removeQA(${qaCount})">✕</button>
+  `;
+  document.getElementById('qaList').appendChild(div);
+}
  
   function removeQA(id) {
     const row = document.getElementById('qa-' + id);
@@ -1447,6 +1534,9 @@
       qaCount = 0;
       const qa = Array.isArray(data.qa) ? data.qa : [];
       if (qa.length === 0) { addQA(); return; }
+      qaLimit = data.qa_limit || 3;
+      isPremium = data.is_premium || false;
+      document.getElementById('upgradeBtn').style.display = isPremium ? 'none' : 'inline-flex';
       qa.forEach(item => addQA(item.question || '', item.answer || ''));
     } catch {
       document.getElementById('qaList').innerHTML = '';
@@ -1473,25 +1563,30 @@
     } catch { showToast('Could not save setup. Is the Python server running?', 'error'); }
   }
  
-  async function saveQA() {
-    const token = localStorage.getItem('token');
-    if (!token) { openAuthModal(); showToast('Please sign in first to save Q&A.', 'info'); return; }
-    const qa = [];
-    document.querySelectorAll('.qa-item').forEach(item => {
-      const id = item.id.replace('qa-', '');
-      const q  = document.getElementById('q-' + id)?.value?.trim();
-      const a  = document.getElementById('a-' + id)?.value?.trim();
-      if (q && a) qa.push({ question: q, answer: a });
+async function saveQA() {
+  const token = localStorage.getItem('token');
+  if (!token) { openAuthModal(); showToast('Please sign in first to save Q&A.', 'info'); return; }
+  const qa = [];
+  document.querySelectorAll('.qa-item').forEach(item => {
+    const id = item.id.replace('qa-', '');
+    const q  = document.getElementById('q-' + id)?.value?.trim();
+    const a  = document.getElementById('a-' + id)?.value?.trim();
+    if (q && a) qa.push({ question: q, answer: a });
+  });
+  try {
+    const res = await fetch('https://wysraq.me/api/qa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, qa })
     });
-    try {
-      await fetch('https://wysraq.me/api/qa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, qa })
-      });
-      showToast('Q&A saved successfully!', 'success');
-    } catch { showToast('Could not save Q&A. Is the Python server running?', 'error'); }
-  }
+    const data = await res.json();
+    if (data.limit_exceeded) {
+      openUpgradeModal();
+      return;
+    }
+    showToast('Q&A saved successfully!', 'success');
+  } catch { showToast('Could not save Q&A. Is the Python server running?', 'error'); }
+}
  
   /* ─────────────────────────────────────────
      DASHBOARD
@@ -1649,8 +1744,37 @@ window.addEventListener('load', () => {
       await Promise.all([loadSetup(), loadQA(), loadConversations()]);
     }
   }
- 
+  
+  function openUpgradeModal() {
+  document.getElementById('upgradeModalOverlay').classList.add('open');
+}
+
+function closeUpgradeModal() {
+  document.getElementById('upgradeModalOverlay').classList.remove('open');
+}
+
+async function startJazzCashPayment() {
+  const token = localStorage.getItem('token');
+  if (!token) { openAuthModal(); return; }
+  showToast('Redirecting to JazzCash...', 'info');
+  try {
+    const res = await fetch('https://wysraq.me/api/jazzcash/initiate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    const data = await res.json();
+    if (data.redirect_url) {
+      window.location.href = data.redirect_url;
+    } else {
+      showToast('Payment error. Try again.', 'error');
+    }
+  } catch { showToast('Could not connect to payment server.', 'error'); }
+}
+
   initializeApp();
 </script>
+
+
 </body>
 </html>
