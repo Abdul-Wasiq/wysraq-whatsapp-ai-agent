@@ -403,7 +403,7 @@ JAZZCASH_RETURN_URL = os.getenv("JAZZCASH_RETURN_URL", "https://wysraq.me/paymen
 JAZZCASH_ENV = os.getenv("JAZZCASH_ENV", "sandbox")
 
 @app.post("/jazzcash/initiate")
-def jazzcashInitiate(payload: TokenPayload):
+def jazzcashInitiate(payload: AuthPayload):
     user_id = verifyToken(payload.token)
     if not user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -411,26 +411,13 @@ def jazzcashInitiate(payload: TokenPayload):
     txn_ref = f"T{datetime.now().strftime('%Y%m%d%H%M%S')}{user_id}"
     txn_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
     txn_expiry = datetime.now().replace(hour=23, minute=59, second=59).strftime("%Y%m%d%H%M%S")
-    amount = "30000"  # Rs. 300 in paisas
+    amount = "88200"  
     
-    # Generate secure hash
     data_to_hash = "&".join([
-        JAZZCASH_INTEGRITY_SALT,
-        JAZZCASH_MERCHANT_ID,
-        JAZZCASH_PASSWORD,
-        amount,
-        "",  # pp_BillReference
-        "",  # pp_Description  
-        txn_datetime,
-        txn_expiry,
-        "PKR",
-        txn_ref
-    ])
-    secure_hash = hmac.new(
-        JAZZCASH_INTEGRITY_SALT.encode(),
-        data_to_hash.encode(),
-        hashlib.sha256
-    ).hexdigest().upper()
+    JAZZCASH_INTEGRITY_SALT, JAZZCASH_MERCHANT_ID, JAZZCASH_PASSWORD,
+    amount, "", "", txn_datetime, txn_expiry, "PKR", txn_ref
+])
+    secure_hash = hmac.new(JAZZCASH_INTEGRITY_SALT.encode(), data_to_hash.encode(), hashlib.sha256).hexdigest().upper()
     
     base_url = "https://sandbox.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform" if JAZZCASH_ENV == "sandbox" else "https://payments.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform"
     
