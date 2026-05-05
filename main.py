@@ -46,6 +46,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class TokenOnlyPayload(BaseModel):
+    token: str
 
 class SetupPayload(BaseModel):
     token: str
@@ -403,7 +405,7 @@ JAZZCASH_RETURN_URL = os.getenv("JAZZCASH_RETURN_URL", "https://wysraq.me/paymen
 JAZZCASH_ENV = os.getenv("JAZZCASH_ENV", "sandbox")
 
 @app.post("/jazzcash/initiate")
-def jazzcashInitiate(payload: AuthPayload):
+def jazzcashInitiate(payload: TokenOnlyPayload):
     user_id = verifyToken(payload.token)
     if not user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
