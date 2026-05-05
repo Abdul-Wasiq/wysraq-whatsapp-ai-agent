@@ -218,7 +218,16 @@ def setPremium(user_id, is_premium: bool):
     try:
         conn = dbConn()
         curs = conn.cursor()
-        curs.execute("UPDATE users SET is_premium = %s WHERE id = %s", (is_premium, user_id))
+        if is_premium:
+            curs.execute(
+                "UPDATE users SET is_premium = %s, premium_expiry = NOW() + INTERVAL '30 days' WHERE id = %s",
+                (True, user_id)
+            )
+        else:
+            curs.execute(
+                "UPDATE users SET is_premium = %s, premium_expiry = NULL WHERE id = %s",
+                (False, user_id)
+            )
         conn.commit()
         return True
     except Exception as e:
@@ -241,12 +250,14 @@ def getAllUsers():
                 u.name,
                 u.email,
                 u.is_premium,
+                u.premium_expiry,
+                u.created_at,
                 COUNT(DISTINCT q.id) as qa_count,
                 COUNT(DISTINCT c.id) as total_messages
             FROM users u
             LEFT JOIN qa q ON q.user_id = u.id
             LEFT JOIN conversations c ON c.user_id = u.id
-            GROUP BY u.id, u.name, u.email, u.is_premium
+            GROUP BY u.id, u.name, u.email, u.is_premium, u.premium_expiry, u.created_at
             ORDER BY u.id DESC
         """)
         return curs.fetchall()

@@ -1201,17 +1201,30 @@
   <div class="upgrade-modal">
     <div style="font-size:40px;margin-bottom:8px;">⭐</div>
     <h2>Upgrade to Premium</h2>
-    <p style="color:#aaa;font-size:14px;">You've reached the free plan limit of 3 Q&A pairs.</p>
+    <p style="color:#aaa;font-size:14px;">Unlock the full power of your AI agent.</p>
     <div class="price">Rs. 300 <span>/ month</span></div>
     <ul>
-      <li>15 Q&A pairs (vs 3 free)</li>
-      <li>Priority AI responses</li>
-      <li>Full conversation history</li>
-      <li>Early access to new features</li>
+      <li style="color:#ffffff;">15 Q&amp;A pairs (vs 3 on free)</li>
+      <li style="color:#ffffff;">Priority AI responses</li>
+      <li style="color:#ffffff;">Full conversation history</li>
+      <li style="color:#ffffff;">Early access to new features</li>
     </ul>
-    <button class="btn-pay" onclick="startJazzCashPayment()">💳 Pay with JazzCash</button>
-    <br>
-    <button class="btn-cancel-upgrade" onclick="closeUpgradeModal()">Maybe later</button>
+
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px;margin-bottom:18px;text-align:left;">
+      <div style="font-size:13px;font-weight:700;color:#ffd200;margin-bottom:10px;">📲 How to Pay (SadaPay)</div>
+      <div style="font-size:13px;color:#e0e0e0;line-height:1.8;">
+        <div>1. Open SadaPay and send <strong style="color:#ffd200;">Rs. 300</strong> to:</div>
+        <div style="font-size:18px;font-weight:800;color:#ffffff;letter-spacing:1px;margin:8px 0;">0311-0000000</div>
+        <div>2. In the payment note, write your email:</div>
+        <div style="font-size:13px;color:#ffd200;font-weight:600;margin:6px 0;" id="modalUserEmail">—</div>
+        <div>3. Screenshot the payment and email it to:</div>
+        <div style="color:#00e5a0;font-weight:600;margin-top:4px;">support@wysraq.me</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:#888;margin-bottom:16px;">⏱ Your account will be upgraded within 24 hours of payment confirmation.</div>
+
+    <button class="btn-cancel-upgrade" onclick="closeUpgradeModal()" style="font-size:14px;color:#aaa;">Close</button>
   </div>
 </div>
 
@@ -1523,6 +1536,19 @@ function addQA(question = '', answer = '') {
       document.getElementById('businessDesc').value = data.business_description || '';
       document.getElementById('ownerNumber').value  = (data.owner_number || '').replace('@c.us', '');
     } catch {}
+    // Fallback: ensure upgradeBtn visibility is set even if loadQA fails
+    try {
+      const token = localStorage.getItem('token') || '';
+      const planRes = await fetch(`https://wysraq.me/api/plan?token=${token}`);
+      const planData = await planRes.json();
+      const btn = document.getElementById('upgradeBtn');
+      if (btn) btn.style.display = planData.is_premium ? 'none' : 'inline-flex';
+      if (!planData.is_premium) {
+        qaLimit = planData.qa_limit || 3;
+      } else {
+        qaLimit = planData.qa_limit || 15;
+      }
+    } catch {}
   }
  
   async function loadQA() {
@@ -1746,6 +1772,8 @@ window.addEventListener('load', () => {
   }
   
   function openUpgradeModal() {
+  const email = localStorage.getItem('email') || '—';
+  document.getElementById('modalUserEmail').textContent = email;
   document.getElementById('upgradeModalOverlay').classList.add('open');
 }
 
@@ -1753,24 +1781,7 @@ function closeUpgradeModal() {
   document.getElementById('upgradeModalOverlay').classList.remove('open');
 }
 
-async function startJazzCashPayment() {
-  const token = localStorage.getItem('token');
-  if (!token) { openAuthModal(); return; }
-  showToast('Redirecting to JazzCash...', 'info');
-  try {
-    const res = await fetch('https://wysraq.me/api/jazzcash/initiate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    });
-    const data = await res.json();
-    if (data.redirect_url) {
-      window.location.href = data.redirect_url;
-    } else {
-      showToast('Payment error. Try again.', 'error');
-    }
-  } catch { showToast('Could not connect to payment server.', 'error'); }
-}
+
 
   initializeApp();
 </script>

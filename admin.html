@@ -278,11 +278,12 @@
             <th>Q&A</th>
             <th>Messages</th>
             <th>Joined</th>
+            <th>Expiry</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody id="userTable">
-          <tr><td colspan="8" style="text-align:center; color:#8899aa; padding:32px;">Loading...</td></tr>
+      <tr><td colspan="9" style="text-align:center; color:#8899aa; padding:32px;">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -337,7 +338,7 @@
 
       const tbody = document.getElementById('userTable');
       if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#8899aa; padding:32px;">No users yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#8899aa; padding:32px;">No users yet</td></tr>';
         return;
       }
 
@@ -352,6 +353,7 @@
           <td>${u.qa_count}</td>
           <td>${u.total_messages}</td>
           <td>${u.joined}</td>
+          <td style="color:${u.is_premium ? '#00e5a0' : '#8899aa'};">${u.premium_expiry || '—'}</td>
           <td>
             ${u.is_premium
               ? `<button class="action-btn btn-downgrade" onclick="setPremium(${u.id}, false)">Downgrade</button>`

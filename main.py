@@ -282,6 +282,21 @@ def save_qa(payload: QAPayload):
 def get_plan(token: str = "") -> dict[str, Any]:
     try:
         user_id = verifyToken(token)
+        # Auto-downgrade if premium has expired
+        from database import dbConn
+        from psycopg2.extras import RealDictCursor
+        conn = dbConn()
+        try:
+            curs = conn.cursor(cursor_factory=RealDictCursor)
+            curs.execute("SELECT is_premium, premium_expiry FROM users WHERE id = %s", (user_id,))
+            row = curs.fetchone()
+            if row and row["is_premium"] and row["premium_expiry"]:
+                expiry = row["premium_expiry"].replace(tzinfo=timezone.utc)
+                if expiry < datetime.now(timezone.utc):
+                    setPremium(user_id, False)
+        finally:
+            curs.close()
+            conn.close()
         is_premium = getUserPlan(user_id)
         qa_count = getQACount(user_id)
         qa_limit = PREMIUM_QA_LIMIT if is_premium else FREE_QA_LIMIT
@@ -360,16 +375,29 @@ def adminGetUsers(password: str = ""):
     if password != ADMIN_PASSWORD:
         return {"success": False, "message": "Unauthorized"}
     users = getAllUsers()
-    return {"success": True, "users": [{
-        "id": u["id"],
-        "name": u["name"] or "",
-        "email": u["email"],
-        "is_premium": bool(u["is_premium"]),
-        "plan": "Premium ⭐" if u["is_premium"] else "Free",
-        "qa_count": u["qa_count"],
-        "total_messages": u["total_messages"],
-        "joined": ""
-    } for u in users]}
+    now = datetime.now(timezone.utc)
+    result = []
+    for u in users:
+        expiry = u.get("premium_expiry")
+        # Auto-downgrade expired premium users
+        if u["is_premium"] and expiry and expiry.replace(tzinfo=timezone.utc) < now:
+            setPremium(u["id"], False)
+            u["is_premium"] = False
+            expiry = None
+        expiry_str = expiry.strftime("%d %b %Y") if expiry else "—"
+        joined_str = u["created_at"].strftime("%d %b %Y") if u.get("created_at") else "—"
+        result.append({
+            "id": u["id"],
+            "name": u["name"] or "",
+            "email": u["email"],
+            "is_premium": bool(u["is_premium"]),
+            "plan": "Premium ⭐" if u["is_premium"] else "Free",
+            "qa_count": u["qa_count"],
+            "total_messages": u["total_messages"],
+            "joined": joined_str,
+            "premium_expiry": expiry_str,
+        })
+    return {"success": True, "users": result}
 
 @app.post("/admin/set-premium")
 def adminSetPremium(payload: PremiumPayload):
@@ -433,7 +461,7 @@ def jazzcashInitiate(payload: TokenOnlyPayload):
         "pp_Amount": amount,
         "pp_TxnCurrency": "PKR",
         "pp_TxnDateTime": txn_datetime,
-        "pp_BillReference": "",
+        "pp_BillReference": f"wysraq-{user_id}",
         "pp_Description": "Wysraq Premium",
         "pp_TxnExpiryDateTime": txn_expiry,
         "pp_ReturnURL": JAZZCASH_RETURN_URL,
