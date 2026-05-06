@@ -4,9 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Wysraq — WhatsApp AI Agent</title>
+
+  <!-- Favicons -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-32x32.png">
+
+  <!-- Open Graph / Google Search thumbnail -->
+  <meta property="og:title" content="Wysraq — WhatsApp AI Agent">
+  <meta property="og:description" content="Automate your WhatsApp replies with AI. Set up in minutes.">
+  <meta property="og:image" content="https://wysraq.me/favicon-32x32.png">
+  <meta property="og:url" content="https://wysraq.me">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="https://wysraq.me/favicon-32x32.png">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -1556,13 +1568,17 @@ function addQA(question = '', answer = '') {
       const token = localStorage.getItem('token') || '';
       const res   = await fetch(`https://wysraq.me/api/qa?token=${token}`);
       const data  = await res.json();
+
+      // Always set plan state FIRST, before any early return
+      qaLimit   = data.qa_limit   || 3;
+      isPremium = data.is_premium || false;
+      document.getElementById('upgradeBtn').style.display = isPremium ? 'none' : 'inline-flex';
+
       document.getElementById('qaList').innerHTML = '';
       qaCount = 0;
       const qa = Array.isArray(data.qa) ? data.qa : [];
+
       if (qa.length === 0) { addQA(); return; }
-      qaLimit = data.qa_limit || 3;
-      isPremium = data.is_premium || false;
-      document.getElementById('upgradeBtn').style.display = isPremium ? 'none' : 'inline-flex';
       qa.forEach(item => addQA(item.question || '', item.answer || ''));
     } catch {
       document.getElementById('qaList').innerHTML = '';
