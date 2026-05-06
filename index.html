@@ -179,6 +179,17 @@
 }
 .btn-upgrade:hover { opacity: 0.85; }
 
+.pro-badge {
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+  color: #000;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.03em;
+}
+
 /* Upgrade Modal */
 .upgrade-modal-overlay {
   display: none;
@@ -1060,6 +1071,7 @@
  
       <div class="status-badge offline" id="statusBadge">Disconnected</div>
       <span class="nav-email" id="navEmail" style="display:none;"></span>
+      <span class="pro-badge" id="proBadge" style="display:none;">PRO ⭐</span>
       <button class="btn-upgrade" id="upgradeBtn" onclick="openUpgradeModal()" style="display:none;">⭐ Upgrade</button>
       <button class="btn-outline" id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
       <button class="btn" id="loginBtn" onclick="openAuthModal()" style="padding: 7px 18px; font-size: 13px;">Sign In</button>
@@ -1555,6 +1567,8 @@ function addQA(question = '', answer = '') {
       const planData = await planRes.json();
       const btn = document.getElementById('upgradeBtn');
       if (btn) btn.style.display = planData.is_premium ? 'none' : 'inline-flex';
+      const badge = document.getElementById('proBadge');
+      if (badge) badge.style.display = planData.is_premium ? 'inline' : 'none';
       if (!planData.is_premium) {
         qaLimit = planData.qa_limit || 3;
       } else {
@@ -1573,6 +1587,7 @@ function addQA(question = '', answer = '') {
       qaLimit   = data.qa_limit   || 3;
       isPremium = data.is_premium || false;
       document.getElementById('upgradeBtn').style.display = isPremium ? 'none' : 'inline-flex';
+      document.getElementById('proBadge').style.display   = isPremium ? 'inline' : 'none';
 
       document.getElementById('qaList').innerHTML = '';
       qaCount = 0;
@@ -1714,6 +1729,10 @@ async function toggleGroupReply() {
     localStorage.removeItem('token');
     localStorage.removeItem('user_id');
     localStorage.removeItem('email');
+    isPremium = false;
+    qaLimit = 3;
+    document.getElementById('proBadge').style.display = 'none';
+    document.getElementById('upgradeBtn').style.display = 'none';
     updateNavAuth();
     location.reload();
   }

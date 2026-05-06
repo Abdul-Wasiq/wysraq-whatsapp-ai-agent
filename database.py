@@ -218,17 +218,24 @@ def setPremium(user_id, is_premium: bool):
     try:
         conn = dbConn()
         curs = conn.cursor()
-        if is_premium:
-            curs.execute(
-                "UPDATE users SET is_premium = %s, premium_expiry = NOW() + INTERVAL '30 days' WHERE id = %s",
-                (True, user_id)
-            )
-        else:
-            curs.execute(
-                "UPDATE users SET is_premium = %s, premium_expiry = NULL WHERE id = %s",
-                (False, user_id)
-            )
-        conn.commit()
+        # Try with premium_expiry column first
+        try:
+            if is_premium:
+                curs.execute(
+                    "UPDATE users SET is_premium = %s, premium_expiry = NOW() + INTERVAL '30 days' WHERE id = %s",
+                    (True, user_id)
+                )
+            else:
+                curs.execute(
+                    "UPDATE users SET is_premium = %s, premium_expiry = NULL WHERE id = %s",
+                    (False, user_id)
+                )
+            conn.commit()
+        except Exception:
+            # Column doesn't exist yet — fall back to simple update
+            conn.rollback()
+            curs.execute("UPDATE users SET is_premium = %s WHERE id = %s", (is_premium, user_id))
+            conn.commit()
         return True
     except Exception as e:
         print(f"Error in setPremium: {e}")
