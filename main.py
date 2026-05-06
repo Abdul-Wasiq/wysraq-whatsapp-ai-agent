@@ -385,7 +385,6 @@ def adminGetUsers(password: str = ""):
             u["is_premium"] = False
             expiry = None
         expiry_str = expiry.strftime("%d %b %Y") if expiry else "—"
-        joined_str = u["created_at"].strftime("%d %b %Y") if u.get("created_at") else "—"
         result.append({
             "id": u["id"],
             "name": u["name"] or "",
@@ -394,7 +393,7 @@ def adminGetUsers(password: str = ""):
             "plan": "Premium ⭐" if u["is_premium"] else "Free",
             "qa_count": u["qa_count"],
             "total_messages": u["total_messages"],
-            "joined": joined_str,
+            "joined": "—",
             "premium_expiry": expiry_str,
         })
     return {"success": True, "users": result}

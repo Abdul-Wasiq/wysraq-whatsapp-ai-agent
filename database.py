@@ -258,13 +258,12 @@ def getAllUsers():
                 u.email,
                 u.is_premium,
                 u.premium_expiry,
-                u.created_at,
                 COUNT(DISTINCT q.id) as qa_count,
                 COUNT(DISTINCT c.id) as total_messages
             FROM users u
             LEFT JOIN qa q ON q.user_id = u.id
             LEFT JOIN conversations c ON c.user_id = u.id
-            GROUP BY u.id, u.name, u.email, u.is_premium, u.premium_expiry, u.created_at
+            GROUP BY u.id, u.name, u.email, u.is_premium, u.premium_expiry
             ORDER BY u.id DESC
         """)
         return curs.fetchall()
