@@ -60,10 +60,9 @@ function bindClientEvents(activeClient, userId) {
         session.qr = null;
     });
 
-    activeClient.on('disconnected', (reason) => {
+    activeClient.on('disconnected', async (reason) => {
         console.log(`[User ${userId}] Disconnected:`, reason);
-        session.isConnected = false;
-        session.qr = null;
+        await killClient(userId);
     });
 
     activeClient.on('message', async (msg) => {
@@ -109,10 +108,25 @@ function findChrome() {
     return null; 
 }
 
+async function killClient(userId) {
+    const session = getSession(userId);
+    if (session.client) {
+        console.log(`[User ${userId}] Destroying browser...`);
+        try { await session.client.destroy(); } catch (e) {}
+        session.client = null;
+    }
+    session.isConnected = false;
+    session.isStarting = false;
+    session.qr = null;
+}
+
 async function startClient(userId) {
     const session = getSession(userId);
-    if (session.isStarting || session.client) return;
-    
+    if (session.isStarting) return;
+
+    // Always kill any existing client first to avoid ghost browsers
+    await killClient(userId);
+
     session.isStarting = true;
 
     try {
@@ -120,15 +134,25 @@ async function startClient(userId) {
         const puppeteerConfig = {
             headless: true,
             protocolTimeout: 120000,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-extensions',
+                '--disable-background-networking',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--no-first-run',
+                '--single-process'          // ← single process = ONE chrome per session not 10+
+            ]
         };
         if (chromePath) puppeteerConfig.executablePath = chromePath;
 
-        // 🚀 ISOLATION: Each user gets their own specific auth folder!
         const newClient = new Client({
-            authStrategy: new LocalAuth({ 
+            authStrategy: new LocalAuth({
                 dataPath: AUTH_PATH,
-                clientId: `user_${userId}` 
+                clientId: `user_${userId}`
             }),
             puppeteer: puppeteerConfig
         });
@@ -138,9 +162,7 @@ async function startClient(userId) {
         await session.client.initialize();
     } catch (error) {
         console.log(`[User ${userId}] Init error:`, error.message);
-        session.client = null;
-        session.isConnected = false;
-        session.qr = null;
+        await killClient(userId);
     } finally {
         session.isStarting = false;
     }
@@ -225,3 +247,37 @@ if (url.pathname === '/admin' || url.pathname === '/admin.html') {
 server.listen(3000, () => {
     console.log('🚀 DevX Switchboard running on http://localhost:3000');
 });
+
+// 🧹 GHOST BROWSER WATCHDOG: Kill any Chrome processes not tied to active sessions
+const { execSync } = require('child_process');
+setInterval(() => {
+    const activePids = new Set();
+    for (const userId in sessions) {
+        const s = sessions[userId];
+        if (s.client && s.client.pupBrowser) {
+            try {
+                const pid = s.client.pupBrowser.process()?.pid;
+                if (pid) activePids.add(pid);
+            } catch (_) {}
+        }
+    }
+    try {
+        // Count chrome processes
+        const out = execSync('pgrep -c chrome || true').toString().trim();
+        const count = parseInt(out) || 0;
+        const expected = Object.keys(sessions).filter(id => sessions[id].isConnected || sessions[id].isStarting).length;
+        // If more than 2x expected, something leaked
+        if (count > Math.max((expected + 1) * 3, 6)) {
+            console.log(`⚠️ Watchdog: ${count} chrome procs vs ${expected} active sessions — cleaning up`);
+            execSync('pkill -f chrome || true');
+            // Restart any sessions that were active
+            for (const userId in sessions) {
+                const s = sessions[userId];
+                if (s.isConnected) {
+                    s.isConnected = false;
+                    s.client = null;
+                }
+            }
+        }
+    } catch (_) {}
+}, 10 * 60 * 1000); // every 10 minutes

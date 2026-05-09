@@ -557,11 +557,23 @@
       position: relative;
     }
 
-    .about-photo {
+    /* .about-photo {
       width: 100%;
       max-width: 320px;
       aspect-ratio: 3/4;
       object-fit: cover;
+      object-position: top center;
+      border-radius: 20px;
+      filter: grayscale(20%) contrast(1.05);
+      position: relative;
+      z-index: 1;
+    } */
+
+    .about-photo {
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 3/4;
+      object-fit: contain;
       object-position: top center;
       border-radius: 20px;
       filter: grayscale(20%) contrast(1.05);
